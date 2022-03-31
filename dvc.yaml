@@ -1,9 +1,9 @@
 stages:
     train:
-        cmd: python scripts/training/run_train_classifier.py
+        cmd: PYTHONPATH=. python scripts/training/run_train_classifier.py
         params:
             - train.method
-            - trai.dataset
+            - train.dataset
             - train.model
             - train.num_repeats
             - train.model_random_state
@@ -23,3 +23,6 @@ stages:
             - linear.batch_size
             - linear.gradient_checkpointing
             - linear.freeze_backbone
+        metrics:
+          - data/metrics/metrics.json:
+              cache: false

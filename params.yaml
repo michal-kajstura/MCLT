@@ -10,7 +10,7 @@ train:
     num_workers: 8
     gpus: [ 0 ]
     precision: 16
-    max_steps: 10000
+    max_steps: 7000
     warmup_steps_ratio: 0.1
     batch_size: 16
     accumulate_grad_batches: 1

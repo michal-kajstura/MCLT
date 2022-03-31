@@ -5,7 +5,7 @@ from typing import Any
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import (
-    EarlyStopping, LearningRateMonitor, ModelCheckpoint,
+    LearningRateMonitor, ModelCheckpoint,
     ModelSummary
 )
 from pytorch_lightning.loggers import MLFlowLogger
@@ -30,16 +30,21 @@ def run_experiment(
     )
     logger.log_hyperparams(config)
 
+    checkpoint_path = Path(mlflow_tracking_uri).joinpath(
+        'checkpoints',
+        logger.experiment_id,
+        logger.run_id,
+    ).with_suffix('.ckpt')
+    checkpoint_path.parent.mkdir(exist_ok=True, parents=True)
+    print(checkpoint_path)
+
     trainer = Trainer(
         max_steps=config['max_steps'],
         logger=logger,
         callbacks=[
             ModelCheckpoint(
-                dirpath=Path(mlflow_tracking_uri).parent.joinpath(
-                    'checkpoints',
-                    logger.experiment_id,
-                    logger.run_id,
-                ),
+                dirpath=checkpoint_path.parent,
+                filename=f'{checkpoint_path.stem}',
                 monitor='val_set/f1_score',
                 mode='max',
             ),
@@ -62,7 +67,11 @@ def run_experiment(
     )
     logger.log_metrics({f'test/{k}': v for k, v in metrics.items()})
 
-    model_log_dir = PROJECT_PATH / 'metrics' / experiment_name / experiment_tag
-    model_log_dir.mkdir(exist_ok=True, parents=True)
-    with model_log_dir.joinpath(f'{config["model_random_state"]}.json').open('w') as file:
+    model_log_path = PROJECT_PATH.joinpath(
+        'data', 'metrics', f'{experiment_name}.json',
+    )
+    model_log_path.parent.mkdir(exist_ok=True, parents=True)
+    with model_log_path.open('w') as file:
         json.dump(metrics, file, indent=2)
+
+    checkpoint_path.unlink(missing_ok=True)
