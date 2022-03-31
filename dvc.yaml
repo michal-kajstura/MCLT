@@ -1,0 +1,25 @@
+stages:
+    train:
+        cmd: python scripts/training/run_train_classifier.py
+        params:
+            - train.method
+            - trai.dataset
+            - train.model
+            - train.num_repeats
+            - train.model_random_state
+            - train.data_random_state
+            - train.num_workers
+            - train.gpus
+            - train.precision
+            - train.max_steps
+            - train.warmup_steps_ratio
+            - train.batch_size
+            - train.accumulate_grad_batches
+            - train.learning_rate
+            - train.max_length
+            - train.gradient_checkpointing
+            - train.freeze_backbone
+            - linear.learning_rate
+            - linear.batch_size
+            - linear.gradient_checkpointing
+            - linear.freeze_backbone

@@ -1,0 +1,39 @@
+      train:
+    method: fine-tune
+    dataset: polemo_in:pl
+    model: Unbabel/xlm-roberta-comet-small
+#    model: xlm-roberta-base
+    num_repeats: 1
+    model_random_state: 2022
+    data_random_state: 2022
+    train_sample_size: 10000
+    num_workers: 8
+    gpus: [ 0 ]
+    precision: 16
+    max_steps: 10000
+    warmup_steps_ratio: 0.1
+    batch_size: 16
+    accumulate_grad_batches: 1
+    learning_rate: 0.00005
+    max_length: 256
+    gradient_checkpointing: false
+    freeze_backbone: false
+
+fine-tune:
+    learning_rate: 0.0005
+    batch_size: 16
+    accumulate_grad_batches: 1
+    gradient_checkpointing: false
+    freeze_backbone: false
+
+linear:
+    learning_rate: 0.001
+    batch_size: 16
+    gradient_checkpointing: false
+    freeze_backbone: true
+
+freeze_embeddings:
+    learning_rate: 0.0005
+    batch_size: 16
+    gradient_checkpointing: true
+    freeze_backbone: embeddings
