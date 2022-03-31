@@ -1,4 +1,4 @@
-      train:
+train:
     method: finetune
     dataset: polemo_in:pl
     model: Unbabel/xlm-roberta-comet-small
