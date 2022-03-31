@@ -1,5 +1,5 @@
       train:
-    method: fine-tune
+    method: finetune
     dataset: polemo_in:pl
     model: Unbabel/xlm-roberta-comet-small
 #    model: xlm-roberta-base
@@ -19,7 +19,7 @@
     gradient_checkpointing: false
     freeze_backbone: false
 
-fine-tune:
+finetune:
     learning_rate: 0.0005
     batch_size: 16
     accumulate_grad_batches: 1
