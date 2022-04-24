@@ -1,9 +1,10 @@
 stages:
     train:
-        cmd: PYTHONPATH=. python scripts/training/run_train_classifier.py
+        cmd: PYTHONPATH=. python scripts/training/run_train_multitask_experiment.py
         params:
             - train.method
-            - train.dataset
+            - train.datasets
+            - train.loss_func
             - train.model
             - train.num_repeats
             - train.model_random_state
