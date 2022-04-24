@@ -11,7 +11,6 @@ stages:
             - train.data_random_state
             - train.num_workers
             - train.gpus
-            - train.precision
             - train.max_steps
             - train.warmup_steps_ratio
             - train.batch_size

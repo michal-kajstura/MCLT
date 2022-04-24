@@ -1,0 +1,5 @@
+[core]
+    analytics = false
+    remote = dvc_sentify
+['remote "dvc_sentify"']
+    url = gdrive://1cefBJWSKVRmPvviCzhtzEtoMbOfKdXTz
