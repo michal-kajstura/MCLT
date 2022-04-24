@@ -7,7 +7,7 @@ from pytorch_lightning.utilities.types import EVAL_DATALOADERS
 from transformers import PreTrainedTokenizerFast
 
 from mclt import DATASETS_PATH
-from mclt.datasets.base import BaseDataModule
+from mclt.data.base import BaseDataModule
 from mclt.utils.seed import set_seeds
 
 
@@ -33,18 +33,18 @@ class RandomSplitMixin:
 
 
 class MonolingualLoadMixin:
-    _dataset_name: str
+    name: str
 
     def _load_dataset(self):
-        return datasets.load_dataset(self._dataset_name)
+        return datasets.load_dataset(self.name)
 
 
 class MultilingualLoadMixin:
-    _dataset_name: str
+    name: str
     _language: str
 
     def _load_dataset(self):
-        return datasets.load_dataset(self._dataset_name, self._language)
+        return datasets.load_dataset(self.name, self._language)
 
 
 class BaseHuggingfaceDataModule(GivenSplitsMixin, MonolingualLoadMixin, BaseDataModule, abc.ABC):
@@ -55,11 +55,6 @@ class BaseHuggingfaceDataModule(GivenSplitsMixin, MonolingualLoadMixin, BaseData
         self._train_dataset = self._process_dataset(train)
         self._val_dataset = self._process_dataset(val)
         self._test_dataset = self._process_dataset(test)
-
-    @property
-    @abc.abstractmethod
-    def _dataset_name(self) -> str:
-        pass
 
     def _process_dataset(self, dataset: Dataset):
         text_columns = self._column_mapping['text']
@@ -100,19 +95,19 @@ class BasePolEmo2DataModule(BaseHuggingfaceDataModule, abc.ABC):
 
 class PolEmo2InDataModule(BasePolEmo2DataModule):
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'allegro/klej-polemo2-in'
 
 
 class PolEmo2OutDataModule(BasePolEmo2DataModule):
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'allegro/klej-polemo2-out'
 
 
 class AllegroReviewsDataModule(BaseHuggingfaceDataModule):
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'allegro/klej-allegro-reviews'
 
     @property
@@ -125,7 +120,7 @@ class AllegroReviewsDataModule(BaseHuggingfaceDataModule):
 
 class CyberbullyingDetectionDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'allegro/klej-cbd'
 
     @property
@@ -138,7 +133,7 @@ class CyberbullyingDetectionDataModule(RandomSplitMixin, BaseHuggingfaceDataModu
 
 class CDSCEntailmentDataModule(BaseHuggingfaceDataModule):
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'allegro/klej-cdsc-e'
 
     @property
@@ -158,6 +153,7 @@ class TweetsHateSpeechDetectionDataModule(RandomSplitMixin, BaseHuggingfaceDataM
         num_workers: int = 8,
         seed: int = 2718,
         max_length: int = int(1e10),
+        train_sample_size: Optional[int] = 10000,
     ):
         super().__init__(
             tokenizer=tokenizer,
@@ -165,11 +161,12 @@ class TweetsHateSpeechDetectionDataModule(RandomSplitMixin, BaseHuggingfaceDataM
             num_workers=num_workers,
             seed=seed,
             max_length=max_length,
+            train_sample_size=train_sample_size,
         )
         self._train_size = train_size
 
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'tweets_hate_speech_detection'
 
     @property
@@ -192,6 +189,7 @@ class HateSpeech18DataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
         num_workers: int = 8,
         seed: int = 2718,
         max_length: int = int(1e10),
+        train_sample_size: Optional[int] = 10000,
     ):
         super().__init__(
             tokenizer=tokenizer,
@@ -199,11 +197,12 @@ class HateSpeech18DataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
             num_workers=num_workers,
             seed=seed,
             max_length=max_length,
+            train_sample_size=train_sample_size,
         )
         self._train_size = train_size
 
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'hate_speech18'
 
     @property
@@ -226,6 +225,7 @@ class HateSpeechOffensiveDataModule(RandomSplitMixin, BaseHuggingfaceDataModule)
         num_workers: int = 8,
         seed: int = 2718,
         max_length: int = int(1e10),
+        train_sample_size: Optional[int] = 10000,
     ):
         super().__init__(
             tokenizer=tokenizer,
@@ -233,11 +233,12 @@ class HateSpeechOffensiveDataModule(RandomSplitMixin, BaseHuggingfaceDataModule)
             num_workers=num_workers,
             seed=seed,
             max_length=max_length,
+            train_sample_size=train_sample_size,
         )
         self._train_size = train_size
 
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'hate_speech_offensive'
 
     @property
@@ -257,6 +258,7 @@ class HateSpeechPLDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
         num_workers: int = 8,
         seed: int = 2718,
         max_length: int = int(1e10),
+        train_sample_size: Optional[int] = 10000,
     ):
         super().__init__(
             tokenizer=tokenizer,
@@ -264,11 +266,12 @@ class HateSpeechPLDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
             num_workers=num_workers,
             seed=seed,
             max_length=max_length,
+            train_sample_size=train_sample_size,
         )
         self._train_size = train_size
 
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'hate_speech_pl'
 
     @property
@@ -288,6 +291,7 @@ class AmazonReviewsDataModule(MultilingualLoadMixin, BaseHuggingfaceDataModule):
         num_workers: int = 8,
         seed: int = 2718,
         max_length: int = int(1e10),
+        train_sample_size: Optional[int] = 10000,
     ):
         super().__init__(
             tokenizer=tokenizer,
@@ -295,11 +299,12 @@ class AmazonReviewsDataModule(MultilingualLoadMixin, BaseHuggingfaceDataModule):
             num_workers=num_workers,
             seed=seed,
             max_length=max_length,
+            train_sample_size=train_sample_size,
         )
         self._language = language
 
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'amazon_reviews_multi'
 
     @property
@@ -319,6 +324,7 @@ class XNLIDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
         num_workers: int = 8,
         seed: int = 2718,
         max_length: int = int(1e10),
+        train_sample_size: Optional[int] = 10000,
     ):
         super().__init__(
             tokenizer=tokenizer,
@@ -326,17 +332,18 @@ class XNLIDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
             num_workers=num_workers,
             seed=seed,
             max_length=max_length,
+            train_sample_size=train_sample_size,
         )
         self._language = language
 
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'xtreme'
 
     def _load_dataset(self):
-        dataset = datasets.load_dataset(
-            self._dataset_name, 'XNLI'
-        ).filter(lambda item: item['language'] == self._language)
+        dataset = datasets.load_dataset(self.name, 'XNLI').filter(
+            lambda item: item['language'] == self._language
+        )
         return concatenate_datasets([dataset['test'], dataset['validation']])
 
     @property
@@ -356,6 +363,7 @@ class PANXDataModule(MultilingualLoadMixin, BaseHuggingfaceDataModule):
         num_workers: int = 8,
         seed: int = 2718,
         max_length: int = int(1e10),
+        train_sample_size: Optional[int] = 10000,
     ):
         super().__init__(
             tokenizer=tokenizer,
@@ -363,11 +371,12 @@ class PANXDataModule(MultilingualLoadMixin, BaseHuggingfaceDataModule):
             num_workers=num_workers,
             seed=seed,
             max_length=max_length,
+            train_sample_size=train_sample_size,
         )
         self._language = f'PAN-X.{language}'
 
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'xtreme'
 
     @property
@@ -389,6 +398,7 @@ class SemEval2018Task1DataModule(MultilingualLoadMixin, BaseHuggingfaceDataModul
         num_workers: int = 8,
         seed: int = 2718,
         max_length: int = int(1e10),
+        train_sample_size: Optional[int] = 10000,
     ):
         super().__init__(
             tokenizer=tokenizer,
@@ -396,12 +406,13 @@ class SemEval2018Task1DataModule(MultilingualLoadMixin, BaseHuggingfaceDataModul
             num_workers=num_workers,
             seed=seed,
             max_length=max_length,
+            train_sample_size=train_sample_size,
         )
         self._train_size = train_size
         self._language = f'subtask5.{language}'
 
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'sem_eval_2018_task_1'
 
     @property
@@ -423,8 +434,12 @@ class SemEval2018Task1DataModule(MultilingualLoadMixin, BaseHuggingfaceDataModul
             ],
         }
 
+    @property
+    def multilabel(self) -> bool:
+        return True
 
-class GoEmotionsDataModule(MultilingualLoadMixin, RandomSplitMixin, BaseHuggingfaceDataModule):
+
+class GoEmotionsDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
     def __init__(
         self,
         tokenizer: PreTrainedTokenizerFast,
@@ -433,6 +448,7 @@ class GoEmotionsDataModule(MultilingualLoadMixin, RandomSplitMixin, BaseHuggingf
         num_workers: int = 8,
         seed: int = 2718,
         max_length: int = int(1e10),
+        train_sample_size: Optional[int] = 10000,
     ):
         super().__init__(
             tokenizer=tokenizer,
@@ -440,12 +456,15 @@ class GoEmotionsDataModule(MultilingualLoadMixin, RandomSplitMixin, BaseHuggingf
             num_workers=num_workers,
             seed=seed,
             max_length=max_length,
+            train_sample_size=train_sample_size,
         )
         self._train_size = train_size
-        self._language = 'raw'
+
+    def _load_dataset(self):
+        return datasets.load_dataset(self.name, 'raw')
 
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'go_emotions'
 
     @property
@@ -453,15 +472,40 @@ class GoEmotionsDataModule(MultilingualLoadMixin, RandomSplitMixin, BaseHuggingf
         return {
             'text': 'text',
             'label': [
-                'admiration', 'amusement', 'anger',
-                'annoyance', 'approval', 'caring', 'confusion', 'curiosity',
-                'desire', 'disappointment', 'disapproval', 'disgust',
-                'embarrassment', 'excitement', 'fear', 'gratitude', 'grief',
-                'joy', 'love', 'nervousness', 'optimism', 'pride',
-                'realization', 'relief', 'remorse', 'sadness', 'surprise',
-                'neutral'
+                'admiration',
+                'amusement',
+                'anger',
+                'annoyance',
+                'approval',
+                'caring',
+                'confusion',
+                'curiosity',
+                'desire',
+                'disappointment',
+                'disapproval',
+                'disgust',
+                'embarrassment',
+                'excitement',
+                'fear',
+                'gratitude',
+                'grief',
+                'joy',
+                'love',
+                'nervousness',
+                'optimism',
+                'pride',
+                'realization',
+                'relief',
+                'remorse',
+                'sadness',
+                'surprise',
+                'neutral',
             ],
         }
+
+    @property
+    def multilabel(self) -> bool:
+        return True
 
 
 class MTSCDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
@@ -476,6 +520,7 @@ class MTSCDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
         num_workers: int = 8,
         seed: int = 2718,
         max_length: int = int(1e10),
+        train_sample_size: Optional[int] = 10000,
     ):
         super().__init__(
             tokenizer=tokenizer,
@@ -483,6 +528,7 @@ class MTSCDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
             num_workers=num_workers,
             seed=seed,
             max_length=max_length,
+            train_sample_size=train_sample_size,
         )
         self._language = language
         self._train_size = train_size
@@ -494,7 +540,7 @@ class MTSCDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
         )['train']
 
     @property
-    def _dataset_name(self) -> str:
+    def name(self) -> str:
         return 'mclt'
 
     @property
