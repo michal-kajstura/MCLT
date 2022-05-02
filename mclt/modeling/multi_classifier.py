@@ -3,6 +3,7 @@ from typing import Any, Optional
 import torch
 from torch import Tensor, nn
 from transformers import PreTrainedModel
+from transformers.modeling_outputs import ModelOutput
 
 from mclt.data.base import TaskDefinition
 from mclt.training.loss import BaseMultiTaskLoss, MultiTaskLoss
@@ -35,7 +36,12 @@ class MultiTaskTransformer(nn.Module):
             input_ids=input_ids,
             attention_mask=attention_mask,
         )
-        last_hidden_state = transformer_output.last_hidden_state
+
+        if isinstance(transformer_output, ModelOutput):
+            last_hidden_state = transformer_output.last_hidden_state
+        else:
+            last_hidden_state = transformer_output
+
         outputs_per_task = self._multi_task_head(
             last_hidden_state=last_hidden_state,
             task_ids=task_ids,

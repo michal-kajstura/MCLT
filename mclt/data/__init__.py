@@ -1,5 +1,7 @@
 from functools import partial
 
+import pandas as pd
+
 from mclt.data.huggingface import (
     AllegroReviewsDataModule,
     AmazonReviewsDataModule,
@@ -14,7 +16,8 @@ from mclt.data.huggingface import (
     PolEmo2InDataModule,
     SemEval2018Task1DataModule,
     TweetsHateSpeechDetectionDataModule,
-    XNLIDataModule,
+    XNLIDataModule, CEDRDataModule, RuReviewsDataModule, HatEvalDataModule,
+    RuUkAbusiveLanguageDataModule, MallCZDataModule,
 )
 
 DATASETS = {
@@ -51,8 +54,28 @@ DATASETS = {
     'mtsc:al': partial(MTSCDataModule, 'al'),
     'xnli:en': partial(XNLIDataModule, 'en'),
     'xnli:fr': partial(XNLIDataModule, 'fr'),
+    'xnli:ru': partial(XNLIDataModule, 'ru'),
     'xnli:de': partial(XNLIDataModule, 'de'),
     'xnli:es': partial(XNLIDataModule, 'es'),
     'xnli:bg': partial(XNLIDataModule, 'bg'),
-    'cdsc-e': CDSCEntailmentDataModule,
+    'cdsc-e:pl': CDSCEntailmentDataModule,
+    'cedr:ru': CEDRDataModule,
+    'rureviews:ru': RuReviewsDataModule,
+    'ru_uk_abusive_language:ru': RuUkAbusiveLanguageDataModule,
+    'hateval:en': partial(HatEvalDataModule, 'en'),
+    'hateval:es': partial(HatEvalDataModule, 'es'),
+    'mallcz:cz': MallCZDataModule,
 }
+
+
+TASK_LANG_MATRIX = pd.DataFrame(
+    [
+        ['mtsc:pl', 'allegro_reviews:pl', 'cyberbullying_detection:pl', None, 'cdsc-e:pl'],
+        # ['mtsc:cz', 'mallcz:cz', None, None, None],
+        ['mtsc:en', 'amazon_reviews:en', 'hateval:en', 'semeval_2018:en', 'xnli:en'],
+        ['mtsc:es', 'amazon_reviews:es', 'hateval:es', 'semeval_2018:es', 'xnli:es'],
+        ['mtsc:ru', 'rureviews:ru', 'ru_uk_abusive_language:ru', 'cedr:ru', 'xnli:ru'],
+    ],
+    columns=['sentiment', 'reviews', 'hate-speech', 'emotions', 'nli'],
+    index=['pl', 'en', 'es', 'ru'],
+)

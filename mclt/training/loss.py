@@ -75,7 +75,6 @@ class UncertaintyWeightedLoss(BaseMultiTaskLoss):
             inverted_variance = torch.exp(-log_sq_variance)
             loss += self._loss_funcs[task_id](logits, labels) * inverted_variance
             loss += log_sq_variance * 0.5
-
         return loss
 
 

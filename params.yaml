@@ -1,43 +1,40 @@
 train:
-    method: linear
-    datasets:
-        - mtsc:pl
-        - polemo_in:pl
-        - cyberbullying_detection:pl
-    model: xlm-roberta-base
-    loss_func: uncertainty
-    num_repeats: 1
-    model_random_state: 2022
-    data_random_state: 2022
-    train_sample_size: 10000
-    num_workers: 8
-    gpus: [ 0 ]
-    max_steps: 5000
-    warmup_steps_ratio: 0.05
-    batch_size: 16
-    accumulate_grad_batches: 1
-    learning_rate: 0.00005
-    max_length: 256
-    gradient_checkpointing: false
-    freeze_backbone: false
-    val_check_interval: 1000
+  method: finetune
+  tasks:
+  languages:
+  model: xlm-roberta-base
+  loss_func: uniform
+  num_repeats: 1
+  model_random_state: 2022
+  data_random_state: 2022
+  train_sample_size: 10000
+  num_workers: 8
+  gpus: [0]
+  max_steps: 10000
+  warmup_steps_ratio: 0.05
+  batch_size: 16
+  accumulate_grad_batches: 1
+  max_length: 256
+  gradient_checkpointing: false
+  freeze_backbone: false
+  val_check_interval: 1000
 
 finetune:
-    learning_rate: 0.00005
-    batch_size: 16
-    accumulate_grad_batches: 1
-    gradient_checkpointing: false
-    freeze_backbone: false
+  learning_rate: 0.00005
+  batch_size: 16
+  accumulate_grad_batches: 1
+  gradient_checkpointing: false
+  freeze_backbone: false
 
 linear:
-    learning_rate: 0.001
-    batch_size: 128
-    gradient_checkpointing: false
-    freeze_backbone: true
+  learning_rate: 0.001
+  batch_size: 64
+  gradient_checkpointing: false
+  freeze_backbone: true
 
 freeze_embeddings:
-    learning_rate: 0.0005
-    batch_size: 16
-    gradient_checkpointing: true
-    freeze_backbone: embeddings
+  learning_rate: 0.0005
+  batch_size: 16
+  gradient_checkpointing: true
+  freeze_backbone: embeddings
 

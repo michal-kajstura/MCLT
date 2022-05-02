@@ -40,3 +40,4 @@ Romance/Germanic: de, pt, fr, ro, en, es, ...
 | de  | MTSC                 | AmazonReviews                   | FBHateSpeech <br> rp_mod_crowd                                                                         |                          | XNLI   |
 | fr  |                      | AmazonReviews                   | HateSpeechMLMA                                                                                         |                          | XNLI   |
 | es  | MTSC                 | AmazonReviews                   | HaterSpeech <br> HatEval2019                                                                           | SemEval                  | XNLI   |
+| ru  | MTSC                 | rureviews                       | AbusiveLanguageDataset                                                                           | cedr                 | XNLI   |

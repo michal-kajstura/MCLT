@@ -8,6 +8,8 @@ import torch
 from datasets import Dataset
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
+from sklearn.model_selection import train_test_split
+from toolz import identity
 from torch.utils.data import DataLoader
 from transformers import DataCollatorWithPadding, PreTrainedTokenizerFast
 
@@ -19,6 +21,7 @@ AugmentationType = Callable[[dict[str, Any]], dict[str, Any]]
 
 @dataclass
 class TaskDefinition:
+    name: str
     num_labels: int
     multilabel: bool
 
@@ -35,7 +38,7 @@ class BaseDataModule(LightningDataModule, abc.ABC):
         train_sample_size: Optional[int] = 10000,
     ):
         super().__init__()
-        self.augmentations = augmentations
+        self._augmentations = augmentations or identity
         self._batch_size = batch_size
         self._num_workers = num_workers
         self._seed = seed
@@ -66,8 +69,8 @@ class BaseDataModule(LightningDataModule, abc.ABC):
     def label_mapping(self) -> Dict[int, Any]:
         dataset = self._train_dataset
         label_cols = [col for col in dataset.column_names if col.startswith('label')]
-        if len(label_cols) == 1:
-            labels = set(dataset[label_cols[0]])
+        if not self.multilabel:
+            labels = set(dataset.data[label_cols[0]].to_numpy())
         else:
             labels = label_cols
         return {name: i for i, name in enumerate(labels)}
@@ -88,6 +91,7 @@ class BaseDataModule(LightningDataModule, abc.ABC):
                 return_tensors='pt',
                 max_length=self._max_length,
             )
+
             if len(label_cols) == 1:
                 labels = items['label']
                 labels_int = [self.label_mapping[label] for label in labels]
@@ -97,13 +101,16 @@ class BaseDataModule(LightningDataModule, abc.ABC):
                     row = [items[col][i] for col in label_cols]
                     labels_int.append(torch.tensor(row, dtype=torch.float32))
 
-            return {
+            sample = {
                 'labels': labels_int,
                 'task': [self.name],
                 **tokenized,
             }
 
-        if self._train_sample_size:
+            sample = self._augmentations(sample)
+            return sample
+
+        if self._train_sample_size and self._train_sample_size < len(dataset):
             dataset = self._subsample_dataset(dataset)
 
         text_cols = {col for col in dataset.column_names if col.startswith('text')}
@@ -113,8 +120,13 @@ class BaseDataModule(LightningDataModule, abc.ABC):
         return dataset
 
     def _subsample_dataset(self, dataset: Dataset):
-        np.random.seed(self._seed)
-        indices = np.random.permutation(len(dataset))[: self._train_sample_size]
+        label = dataset['label']
+        indices, _ = train_test_split(
+            np.arange(len(dataset)),
+            train_size=self._train_sample_size,
+            random_state=self._seed,
+            stratify=label,
+        )
         return dataset.select(indices)
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:
@@ -176,7 +188,7 @@ class MultiTaskDataModule(LightningDataModule):
 
     @property
     def tasks(self) -> dict[str, TaskDefinition]:
-        return {d.name: TaskDefinition(d.num_labels, d.multilabel) for d in self._datamodules}
+        return {d.name: TaskDefinition(d.name, d.num_labels, d.multilabel) for d in self._datamodules}
 
     def prepare_data(self) -> None:
         for datamodule in self._datamodules:
@@ -230,4 +242,5 @@ class MultiTaskDataModule(LightningDataModule):
                 tokenizer=self._tokenizer,
                 padding='longest',
             ),
+            pin_memory=True,
         )

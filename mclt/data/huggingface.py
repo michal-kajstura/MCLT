@@ -1,4 +1,5 @@
 import abc
+from itertools import chain
 from typing import Literal, Optional, Union
 
 import datasets
@@ -21,12 +22,13 @@ class GivenSplitsMixin:
 
 class RandomSplitMixin:
     _train_size: float = 0.8
+    _seed: int
 
     def _load_splits(self, dataset: Dataset) -> tuple[Dataset, Dataset, Dataset]:
         if isinstance(dataset, DatasetDict):
             dataset = dataset['train']
 
-        train_test_val = dataset.train_test_split(train_size=self._train_size)
+        train_test_val = dataset.train_test_split(train_size=self._train_size, seed=self._seed)
         test_valid = train_test_val['test'].train_test_split(train_size=0.5)
 
         return train_test_val['train'], test_valid['train'], test_valid['test']
@@ -533,7 +535,7 @@ class MTSCDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
         self._language = language
         self._train_size = train_size
 
-    def _load_dataset(self) -> None:
+    def _load_dataset(self):
         return datasets.load_dataset(
             'csv',
             data_files=str(self._dataset_path / f'{self._language}.csv'),
@@ -541,11 +543,169 @@ class MTSCDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
 
     @property
     def name(self) -> str:
-        return 'mclt'
+        return f'mclt_{self._language}'
 
     @property
     def _column_mapping(self) -> dict[str, str]:
         return {
             'text': 'Tweet text',
             'label': 'SentLabel',
+        }
+
+
+class CEDRDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
+    _dataset_path = DATASETS_PATH / 'multilingual_twitter_sentiment_classification/tweets'
+
+    def _load_dataset(self):
+        dataset = datasets.load_dataset('cedr')
+        dataset = concatenate_datasets([dataset['train'], dataset['test']])
+        num_labels = 5
+
+        def onehot(row):
+            labels = row.pop('labels')
+            for i in range(num_labels):
+                row[str(i)] = 1 if i in labels else 0
+            return row
+        dataset = dataset.map(onehot)
+        return dataset
+
+    @property
+    def name(self) -> str:
+        return 'cedr'
+
+    @property
+    def _column_mapping(self) -> dict[str, str]:
+        return {
+            'text': 'text',
+            'label': [
+                '0',
+                '1',
+                '2',
+                '3',
+                '4',
+            ]
+        }
+
+    @property
+    def multilabel(self) -> bool:
+        return True
+
+
+class RuReviewsDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
+    _dataset_path = DATASETS_PATH / 'rureviews/rureviews.csv'
+
+    def _load_dataset(self):
+        return datasets.load_dataset(
+            'csv',
+            data_files=str(self._dataset_path),
+            delimiter='\t',
+        )
+
+    @property
+    def name(self) -> str:
+        return 'rureviews'
+
+    @property
+    def _column_mapping(self) -> dict[str, str]:
+        return {
+            'text': 'review',
+            'label': 'sentiment',
+        }
+
+
+class RuUkAbusiveLanguageDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
+    _dataset_path = DATASETS_PATH / 'ru_uk_AbusiveLanguageDataset/labeled.csv'
+
+    def _load_dataset(self):
+        return datasets.load_dataset(
+            'csv',
+            data_files=str(self._dataset_path),
+        )
+
+    @property
+    def name(self) -> str:
+        return 'ru_uk_abusive_language'
+
+    @property
+    def _column_mapping(self) -> dict[str, str]:
+        return {
+            'text': 'text',
+            'label': 'abusive',
+        }
+
+
+class HatEvalDataModule(BaseHuggingfaceDataModule):
+    _dataset_path = DATASETS_PATH / 'hateval2019'
+
+    def __init__(
+        self,
+        language: Literal['en', 'es'],
+        tokenizer: PreTrainedTokenizerFast,
+        batch_size: int = 16,
+        num_workers: int = 8,
+        seed: int = 2718,
+        max_length: int = int(1e10),
+        train_sample_size: Optional[int] = 10000,
+    ):
+        super().__init__(
+            tokenizer=tokenizer,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            seed=seed,
+            max_length=max_length,
+            train_sample_size=train_sample_size,
+        )
+        self._language = language
+
+    def _load_dataset(self):
+        data = {
+            'validation' if split == 'dev' else split: datasets.load_dataset(
+                'csv',
+                data_files=str(self._dataset_path / f'hateval2019_{self._language}_{split}.csv'),
+            )['train'] for split in ('train', 'dev', 'test')
+        }
+        return DatasetDict(data)
+
+    @property
+    def name(self) -> str:
+        return f'hateval2019_{self._language}'
+
+    @property
+    def _column_mapping(self) -> dict[str, str]:
+        return {
+            'text': 'text',
+            'label': 'HS',
+        }
+
+
+class MallCZDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
+    _dataset_path = DATASETS_PATH / 'mallcz'
+
+    def _load_dataset(self):
+        label_mapping = {
+            'negative': 0,
+            'neutral': 1,
+            'positive': 2,
+        }
+        data = []
+        for label, label_id in label_mapping.items():
+            dataset = datasets.load_dataset(
+                'csv',
+                data_files=str(self._dataset_path / f'{label}.txt'),
+            )['train']
+            dataset['label'] = label_id
+            data.append(dataset)
+
+        dataset = concatenate_datasets(data)
+        return dataset
+
+    @property
+    def name(self) -> str:
+        return f'mallcz'
+
+    @property
+    def _column_mapping(self) -> dict[str, str]:
+        return {
+            'text': 'text',
+            'label': 'label',
         }
