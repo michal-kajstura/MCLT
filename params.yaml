@@ -11,16 +11,17 @@ train:
   num_workers: 8
   gpus: [0]
   max_steps: 10000
-  warmup_steps_ratio: 0.05
+  warmup_steps_ratio: 0.1
   batch_size: 16
   accumulate_grad_batches: 1
   max_length: 256
   gradient_checkpointing: false
   freeze_backbone: false
   val_check_interval: 1000
+  patience: 5
 
 finetune:
-  learning_rate: 0.00005
+  learning_rate: 0.00001
   batch_size: 16
   accumulate_grad_batches: 1
   gradient_checkpointing: false

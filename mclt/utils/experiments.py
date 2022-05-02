@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict
 
 import torch
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import MLFlowLogger
 from transformers import AutoModel, AutoTokenizer
 
@@ -71,6 +71,11 @@ def run_experiment(
                 filename=f'{checkpoint_path.stem}',
                 monitor='val_set/f1_score',
                 mode='max',
+            ),
+            EarlyStopping(
+                monitor='val_set/f1_score',
+                mode='max',
+                patience=config['patience'],
             ),
             LearningRateMonitor('step'),
         ],
