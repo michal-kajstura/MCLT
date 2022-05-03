@@ -46,7 +46,7 @@ class MultilingualLoadMixin:
     _language: str
 
     def _load_dataset(self):
-        return datasets.load_dataset(self.name, self._language)
+        return datasets.load_dataset(self.name.rsplit('_', maxsplit=1)[0], self._language)
 
 
 class BaseHuggingfaceDataModule(GivenSplitsMixin, MonolingualLoadMixin, BaseDataModule, abc.ABC):
