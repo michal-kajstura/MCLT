@@ -5,6 +5,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Any, Callable, Dict
 
+import pandas as pd
 import torch
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint, EarlyStopping
@@ -117,10 +118,13 @@ def create_datamodule(config) -> MultiTaskDataModule:
     datasets = TASK_LANG_MATRIX.loc[
         config['languages'] or slice(None),
         config['tasks'] or slice(None),
-    ]
-    datasets = list(chain.from_iterable(datasets.values))
+    ].dropna()
+
+    if isinstance(datasets, pd.DataFrame):
+        datasets = chain.from_iterable(datasets.values)
+
     datamodule = MultiTaskDataModule(
-        [DATASETS[dataset](**kwargs) for dataset in datasets if dataset],
+        [DATASETS[dataset](**kwargs) for dataset in datasets],
         tokenizer=tokenizer,
         num_workers=config['num_workers'],
         batch_size=config['batch_size'],

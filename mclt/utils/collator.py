@@ -8,7 +8,7 @@ from transformers import DataCollatorWithPadding
 @dataclass
 class CustomDataCollatorWithPadding(DataCollatorWithPadding):
     def __call__(self, features: list[dict[str, Any]]) -> dict[str, Any]:
-        is_multilabel = len(features[0]['labels']) > 1
+        is_multilabel = not isinstance(features[0]['labels'], (int, float))
 
         if is_multilabel:
             max_len = max(len(item['labels']) for item in features)

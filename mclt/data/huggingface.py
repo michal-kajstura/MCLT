@@ -343,7 +343,7 @@ class XNLIDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
         return f'xtreme_{self._language}'
 
     def _load_dataset(self):
-        dataset = datasets.load_dataset(self.name, 'XNLI').filter(
+        dataset = datasets.load_dataset(self.name.rsplit('_', maxsplit=1)[0], 'XNLI').filter(
             lambda item: item['language'] == self._language
         )
         return concatenate_datasets([dataset['test'], dataset['validation']])
