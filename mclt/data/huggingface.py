@@ -307,7 +307,7 @@ class AmazonReviewsDataModule(MultilingualLoadMixin, BaseHuggingfaceDataModule):
 
     @property
     def name(self) -> str:
-        return 'amazon_reviews_multi'
+        return f'amazon_reviews_multi_{self._language}'
 
     @property
     def _column_mapping(self) -> dict[str, str]:
@@ -340,7 +340,7 @@ class XNLIDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
 
     @property
     def name(self) -> str:
-        return 'xtreme'
+        return f'xtreme_{self._language}'
 
     def _load_dataset(self):
         dataset = datasets.load_dataset(self.name, 'XNLI').filter(
@@ -379,7 +379,7 @@ class PANXDataModule(MultilingualLoadMixin, BaseHuggingfaceDataModule):
 
     @property
     def name(self) -> str:
-        return 'xtreme'
+        return f'xtreme_{self._language}'
 
     @property
     def _column_mapping(self) -> dict[str, str]:
@@ -415,7 +415,7 @@ class SemEval2018Task1DataModule(MultilingualLoadMixin, BaseHuggingfaceDataModul
 
     @property
     def name(self) -> str:
-        return 'sem_eval_2018_task_1'
+        return f'sem_eval_2018_task_1_{self._language}'
 
     @property
     def _column_mapping(self) -> dict[str, str]:
