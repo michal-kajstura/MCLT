@@ -415,7 +415,7 @@ class SemEval2018Task1DataModule(MultilingualLoadMixin, BaseHuggingfaceDataModul
 
     @property
     def name(self) -> str:
-        return f'sem_eval_2018_task_1_{self._language}'
+        return f'sem_eval_2018_task_1_{self._language}'.replace('.', '-')
 
     @property
     def _column_mapping(self) -> dict[str, str]:

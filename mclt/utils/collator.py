@@ -1,12 +1,21 @@
 from dataclasses import dataclass
 from typing import Any
 
+import torch
 from transformers import DataCollatorWithPadding
 
 
 @dataclass
 class CustomDataCollatorWithPadding(DataCollatorWithPadding):
     def __call__(self, features: list[dict[str, Any]]) -> dict[str, Any]:
+        is_multilabel = len(features[0]['labels']) > 1
+
+        if is_multilabel:
+            max_len = max(len(item['labels']) for item in features)
+            for item in features:
+                labels = item['labels']
+                labels = labels.tolist() + [-1] * (max_len - len(labels))
+                item['labels'] = torch.tensor(labels)
         padded = super().__call__(
             [
                 {

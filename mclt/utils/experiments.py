@@ -120,7 +120,7 @@ def create_datamodule(config) -> MultiTaskDataModule:
     ]
     datasets = list(chain.from_iterable(datasets.values))
     datamodule = MultiTaskDataModule(
-        [DATASETS[dataset](**kwargs) for dataset in datasets],
+        [DATASETS[dataset](**kwargs) for dataset in datasets if dataset],
         tokenizer=tokenizer,
         num_workers=config['num_workers'],
         batch_size=config['batch_size'],
