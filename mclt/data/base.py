@@ -94,7 +94,7 @@ class BaseDataModule(LightningDataModule, abc.ABC):
 
             if len(label_cols) == 1:
                 labels = items['label']
-                labels_int = [self.label_mapping[label] for label in labels]
+                labels_int = torch.tensor([self.label_mapping[label] for label in labels])
             else:
                 labels_int = []
                 for i in range(tokenized.n_sequences):

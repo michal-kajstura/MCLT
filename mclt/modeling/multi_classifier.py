@@ -52,11 +52,7 @@ class MultiTaskTransformer(nn.Module):
         if labels is not None:
             labels_per_task = group_by_task(task_ids, labels=labels)
             for task in labels_per_task:
-                labels = labels_per_task[task]['labels']
-                if len(labels.shape) > 1:
-                    num_valid = labels.shape[1] - (labels[0] == -1).sum()
-                    labels = labels[:, :num_valid]
-                outputs_per_task[task]['labels'] = labels
+                outputs_per_task[task]['labels'] = labels_per_task[task]['labels']
             outputs_per_task['loss'] = self._loss_func(outputs_per_task)
 
         return outputs_per_task
