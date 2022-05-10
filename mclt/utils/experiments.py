@@ -6,16 +6,13 @@ from pathlib import Path
 from typing import Any, Callable, Dict
 
 import pandas as pd
-import torch
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.loggers import MLFlowLogger, WandbLogger
-from retry import retry
+from pytorch_lightning.loggers import WandbLogger
 from transformers import AutoModel, AutoTokenizer
 
 from mclt import (
     DEFAULT_MLFLOW_TRACKING_URI,
-    EMBEDDINGS_DIR,
     PROJECT_PATH,
 )
 from mclt.data import DATASETS, TASK_LANGUAGE_TABLE, DATASET_TO_TASK_LANG
@@ -26,7 +23,6 @@ from mclt.training.trainer import MultitaskTransformerTrainer
 from mclt.utils.seed import set_seeds
 
 
-@retry(tries=10, delay=10)
 def run_experiment(
     config: dict[str, Any],
     create_datamodule: Callable[[Dict], MultiTaskDataModule],
