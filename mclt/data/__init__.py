@@ -47,7 +47,7 @@ DATASETS = {
     'mtsc:en': partial(MTSCDataModule, 'en'),
     'mtsc:sw': partial(MTSCDataModule, 'sw'),
     'mtsc:es': partial(MTSCDataModule, 'es'),
-    'mtsc:so': partial(MTSCDataModule, 'so'),
+    'mtsc:si': partial(MTSCDataModule, 'si'),
     'mtsc:sk': partial(MTSCDataModule, 'sk'),
     'mtsc:se': partial(MTSCDataModule, 'se'),
     'mtsc:ru': partial(MTSCDataModule, 'ru'),
@@ -73,6 +73,7 @@ DATASETS = {
     'mallcz:cz': MallCZDataModule,
     'csfever:cz': CSFeverDataModule,
     'csfd:cz': CSFDDataModule,
+    'xed:si': partial(XEDDataModule, 'si'),
     'xed:pl': partial(XEDDataModule, 'pl'),
     'xed:cz': partial(XEDDataModule, 'cz'),
 }
@@ -82,12 +83,13 @@ TASK_LANGUAGE_TABLE = pd.DataFrame(
     [
         ['mtsc:pl', 'allegro_reviews:pl', 'cyberbullying_detection:pl', 'xed:pl', 'cdsc-e:pl'],
         ['csfd:cz', 'mallcz:cz', None, 'xed:cz', 'csfever:cz'],
+        ['mtsc:si', None, None, 'xed:si', None],
         ['mtsc:en', 'amazon_reviews:en', 'hateval:en', 'semeval_2018:en', 'xnli:en'],
         ['mtsc:es', 'amazon_reviews:es', 'hateval:es', 'semeval_2018:es', 'xnli:es'],
         ['mtsc:ru', 'rureviews:ru', 'ru_uk_abusive_language:ru', 'cedr:ru', 'xnli:ru'],
     ],
     columns=['sentiment', 'reviews', 'hate-speech', 'emotions', 'nli'],
-    index=['pl', 'cz', 'en', 'es', 'ru'],
+    index=['pl', 'cz', 'si', 'en', 'es', 'ru'],
 )
 
 

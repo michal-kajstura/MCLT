@@ -1,5 +1,6 @@
 [core]
     analytics = false
     remote = dvc_sentify
+    autostage = true
 ['remote "dvc_sentify"']
     url = gdrive://1cefBJWSKVRmPvviCzhtzEtoMbOfKdXTz
