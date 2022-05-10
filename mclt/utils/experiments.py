@@ -33,11 +33,13 @@ def run_experiment(
     seed = config['model_random_state']
     task_names = '_'.join(config['tasks']) if config['tasks'] else 'multitask'
     lang_names = '_'.join(config['languages']) if config['languages'] else 'multilang'
+    name = f'{task_names}|{lang_names}|{config["method"]}|{config["loss_func"]}|{config["learning_rate"]}'
+
     matrics_log_path = PROJECT_PATH.joinpath(
         'data',
         'metrics',
         experiment_name,
-        f'{task_names}|{lang_names}',
+        name,
         f'{seed}.json',
     )
     if matrics_log_path.exists():

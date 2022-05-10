@@ -803,7 +803,7 @@ class XEDDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
                 row[str(i)] = 1 if i in labels else 0
             return row
 
-        dataset = dataset.map(onehot)
+        dataset = dataset.map(onehot).filter(lambda example: example['text'] is not None)
         return dataset
 
     @property
