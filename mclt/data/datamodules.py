@@ -785,6 +785,9 @@ class XEDDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
         self._language = language
         self._train_size = train_size
 
+    def multilabel(self) -> bool:
+        return True
+
     def _load_dataset(self):
         dataset = datasets.load_dataset(
             'csv',
