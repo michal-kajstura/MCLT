@@ -9,7 +9,8 @@ import pandas as pd
 import torch
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.loggers import MLFlowLogger
+from pytorch_lightning.loggers import MLFlowLogger, WandbLogger
+from retry import retry
 from transformers import AutoModel, AutoTokenizer
 
 from mclt import (
@@ -25,6 +26,7 @@ from mclt.training.trainer import MultitaskTransformerTrainer
 from mclt.utils.seed import set_seeds
 
 
+@retry(tries=10, delay=10)
 def run_experiment(
     config: dict[str, Any],
     create_datamodule: Callable[[Dict], MultiTaskDataModule],
@@ -51,19 +53,17 @@ def run_experiment(
     matrics_log_path.parent.mkdir(exist_ok=True, parents=True)
 
     mlflow_tracking_uri = os.environ.get('MLFLOW_TRACKING_URI', DEFAULT_MLFLOW_TRACKING_URI)
-    logger = MLFlowLogger(
-        tracking_uri=mlflow_tracking_uri,
-        experiment_name=experiment_name,
-        tags={'description': experiment_tag},
+    logger = WandbLogger(
+        project='mclt',
     )
-    logger.log_hyperparams(config)
+    logger.log_hyperparams({**config, 'experiment_tag': experiment_tag})
 
     checkpoint_path = (
         Path(mlflow_tracking_uri)
         .joinpath(
             'checkpoints',
-            logger.experiment_id,
-            logger.run_id,
+            logger.experiment.project,
+            logger.experiment.name,
         )
         .with_suffix('.ckpt')
     )
