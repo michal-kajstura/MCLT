@@ -1,17 +1,17 @@
-import sys
 from copy import deepcopy
 
-from mclt.data import TASK_LANG_MATRIX
+from mclt.data import TASK_LANGUAGE_TABLE
 from mclt.utils.config import load_config
 from mclt.utils.experiments import (
-    create_datamodule, run_experiment,
+    create_datamodule,
     create_multilingual_model_trainer,
+    run_experiment,
 )
 
 config = load_config('train')
 config.update(load_config(config['method']))
 
-for task_name, datasets in TASK_LANG_MATRIX.iteritems():
+for task_name, datasets in TASK_LANGUAGE_TABLE.iteritems():
     for lang_name, dataset in datasets.iteritems():
         if dataset is None:
             continue

@@ -2,22 +2,28 @@ from functools import partial
 
 import pandas as pd
 
-from mclt.data.huggingface import (
+from mclt.data.datamodules import (
     AllegroReviewsDataModule,
     AmazonReviewsDataModule,
     CDSCEntailmentDataModule,
+    CEDRDataModule,
+    CSFeverDataModule,
     CyberbullyingDetectionDataModule,
     GoEmotionsDataModule,
     HateSpeech18DataModule,
     HateSpeechOffensiveDataModule,
     HateSpeechPLDataModule,
+    HatEvalDataModule,
+    MallCZDataModule,
     MTSCDataModule,
     PANXDataModule,
     PolEmo2InDataModule,
+    RuReviewsDataModule,
+    RuUkAbusiveLanguageDataModule,
     SemEval2018Task1DataModule,
     TweetsHateSpeechDetectionDataModule,
-    XNLIDataModule, CEDRDataModule, RuReviewsDataModule, HatEvalDataModule,
-    RuUkAbusiveLanguageDataModule, MallCZDataModule,
+    XEDDataModule,
+    XNLIDataModule, CSFDDataModule,
 )
 
 DATASETS = {
@@ -65,17 +71,28 @@ DATASETS = {
     'hateval:en': partial(HatEvalDataModule, 'en'),
     'hateval:es': partial(HatEvalDataModule, 'es'),
     'mallcz:cz': MallCZDataModule,
+    'csfever:cz': CSFeverDataModule,
+    'csfd:cz': CSFDDataModule,
+    'xed:pl': partial(XEDDataModule, 'pl'),
+    'xed:cz': partial(XEDDataModule, 'cz'),
 }
 
 
-TASK_LANG_MATRIX = pd.DataFrame(
+TASK_LANGUAGE_TABLE = pd.DataFrame(
     [
-        ['mtsc:pl', 'allegro_reviews:pl', 'cyberbullying_detection:pl', None, 'cdsc-e:pl'],
-        # ['mtsc:cz', 'mallcz:cz', None, None, None],
+        ['mtsc:pl', 'allegro_reviews:pl', 'cyberbullying_detection:pl', 'xed:pl', 'cdsc-e:pl'],
+        ['csfd:cz', 'mallcz:cz', None, 'xed:cz', 'csfever:cz'],
         ['mtsc:en', 'amazon_reviews:en', 'hateval:en', 'semeval_2018:en', 'xnli:en'],
         ['mtsc:es', 'amazon_reviews:es', 'hateval:es', 'semeval_2018:es', 'xnli:es'],
         ['mtsc:ru', 'rureviews:ru', 'ru_uk_abusive_language:ru', 'cedr:ru', 'xnli:ru'],
     ],
     columns=['sentiment', 'reviews', 'hate-speech', 'emotions', 'nli'],
-    index=['pl', 'en', 'es', 'ru'],
+    index=['pl', 'cz', 'en', 'es', 'ru'],
 )
+
+
+DATASET_TO_TASK_LANG = {
+    dataset: (lang, task)
+    for lang, row in TASK_LANGUAGE_TABLE.iterrows()
+    for task, dataset in row.iteritems()
+}

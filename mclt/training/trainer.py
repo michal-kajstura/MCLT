@@ -11,9 +11,11 @@ from mclt.data.base import TaskDefinition
 from mclt.modeling.multi_classifier import MultiTaskTransformer
 
 
-class BaseSentimentTrainer(pl.LightningModule, abc.ABC):
+class MultitaskTransformerTrainer(pl.LightningModule, abc.ABC):
     def __init__(
         self,
+        model: MultiTaskTransformer,
+        tasks: dict[str, TaskDefinition],
         learning_rate: float = 1e-5,
         warmup_steps_ratio: float = 0.1,
         weight_decay: float = 0.01,
@@ -22,6 +24,30 @@ class BaseSentimentTrainer(pl.LightningModule, abc.ABC):
         self._learning_rate = learning_rate
         self._warmup_steps_ratio = warmup_steps_ratio
         self._weight_decay = weight_decay
+        self.model = model
+        metrics = {
+            task_name: MetricCollection(
+                {
+                    f'{task_name}/f1_score': F1Score(num_classes=task.num_labels),
+                    f'{task_name}/f1_score_macro': F1Score(
+                        num_classes=task.num_labels, average='macro'
+                    ),
+                }
+            )
+            for task_name, task in tasks.items()
+        }
+        self._metrics = nn.ModuleDict(
+            {
+                set_name: nn.ModuleDict(
+                    {
+                        task_name: metrics.clone(f'{set_name}/')
+                        for task_name, metrics in metrics.items()
+                    }
+                )
+                for set_name in ('train_split', 'val_split', 'test_split')
+            }
+        )
+        self._task_names = list(tasks)
 
     def training_step(  # type: ignore
         self,
@@ -29,7 +55,7 @@ class BaseSentimentTrainer(pl.LightningModule, abc.ABC):
         batch_idx: int,
     ) -> dict[str, Tensor]:
         self.lr_schedulers().step()  # type: ignore
-        return self._step(batch, 'train_set', batch_idx, 0)['loss']
+        return self._step(batch, 'train_split', 'train')['loss']
 
     def validation_step(  # type: ignore
         self,
@@ -38,7 +64,7 @@ class BaseSentimentTrainer(pl.LightningModule, abc.ABC):
         *args,
     ):
         dataset_idx = args[0] if args else 0
-        o = self._step(batch, 'val_set', batch_idx, dataset_idx)
+        o = self._step(batch, 'val_split', self._task_names[dataset_idx])
         return o['loss']
 
     def test_step(  # type: ignore
@@ -48,49 +74,31 @@ class BaseSentimentTrainer(pl.LightningModule, abc.ABC):
         *args,
     ):
         dataset_idx = args[0] if args else 0
-        return self._step(batch, 'test_set', batch_idx, dataset_idx)['loss']
+        return self._step(batch, 'test_split', self._task_names[dataset_idx])['loss']
 
     def _epoch_end(
         self,
         outs,
         step_type,
     ):
-        all_metrics = []
+        f1_scores = []
         for metrics in self._metrics[step_type].values():
             to_log = metrics.compute()
             self.log_dict(to_log)
             metrics.reset()
-            all_metrics.extend(to_log.values())
+            f1_scores.extend(v for k, v in to_log.items() if k.endswith('f1_score'))
 
-        global_f1 = torch.stack(all_metrics).mean()
+        global_f1 = torch.stack(f1_scores).mean()
         self.log(f'{step_type}/f1_score', global_f1)
 
     def training_epoch_end(self, outputs) -> None:
-        self._epoch_end(outputs, 'train_set')
+        self._epoch_end(outputs, 'train_split')
 
     def validation_epoch_end(self, outputs) -> None:
-        self._epoch_end(outputs, 'val_set')
+        self._epoch_end(outputs, 'val_split')
 
     def test_epoch_end(self, outputs) -> None:
-        self._epoch_end(outputs, 'test_set')
-
-    @abc.abstractmethod
-    def forward(  # type: ignore
-        self,
-        *args,
-        **kwargs,
-    ):
-        pass
-
-    @abc.abstractmethod
-    def _step(
-        self,
-        batch: Dict[str, Tensor],
-        step_type: str,
-        batch_idx: int,
-        dataset_idx: int,
-    ):
-        pass
+        self._epoch_end(outputs, 'test_split')
 
     def configure_optimizers(self):
         optimizer = AdamW(
@@ -119,41 +127,6 @@ class BaseSentimentTrainer(pl.LightningModule, abc.ABC):
             'lr_scheduler': scheduler,
         }
 
-
-class MultitaskTransformerTrainer(BaseSentimentTrainer):
-    def __init__(
-        self,
-        model: MultiTaskTransformer,
-        tasks: dict[str, TaskDefinition],
-        learning_rate: float = 1e-5,
-        warmup_steps_ratio: float = 0.1,
-        weight_decay: float = 0.01,
-    ):
-        super().__init__(
-            learning_rate=learning_rate,
-            warmup_steps_ratio=warmup_steps_ratio,
-            weight_decay=weight_decay,
-        )
-        self.model = model
-        metrics = {
-            task_name: MetricCollection(
-                {f'{task_name}/f1_score': F1Score(num_classes=task.num_labels)}
-            )
-            for task_name, task in tasks.items()
-        }
-        self._metrics = nn.ModuleDict(
-            {
-                set_name: nn.ModuleDict(
-                    {
-                        task_name: metrics.clone(f'{set_name}/')
-                        for task_name, metrics in metrics.items()
-                    }
-                )
-                for set_name in ('train_set', 'val_set', 'test_set')
-            }
-        )
-        self._task_names = list(tasks)
-
     def forward(  # type: ignore
         self,
         input_ids: Tensor,
@@ -172,8 +145,7 @@ class MultitaskTransformerTrainer(BaseSentimentTrainer):
         self,
         batch: Dict[str, Tensor],
         step_type: str,
-        batch_idx: int,
-        dataset_idx: int,
+        dataset_name: str,
     ):
         task_ids = batch['task']
         labels = batch['labels']
@@ -190,5 +162,5 @@ class MultitaskTransformerTrainer(BaseSentimentTrainer):
             labels = group['labels'].int()
             self._metrics[step_type][task].update(logits, labels)
 
-        self.log(f'{step_type}/loss', loss, on_epoch=True)
+        self.log(f'{step_type}/{dataset_name}/loss', loss, on_epoch=True, add_dataloader_idx=False)
         return {'loss': loss}

@@ -6,3 +6,4 @@ DATASETS_PATH = DATA_PATH / 'datasets'
 MODEL_DIR = DATA_PATH / 'models'
 EMBEDDINGS_DIR = DATA_PATH / 'embeddings'
 DEFAULT_MLFLOW_TRACKING_URI = str(PROJECT_PATH / 'mlruns')
+

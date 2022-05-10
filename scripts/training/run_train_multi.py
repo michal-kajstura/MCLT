@@ -1,17 +1,17 @@
-import sys
 from copy import deepcopy
 
-from mclt.data import TASK_LANG_MATRIX
+from mclt.data import TASK_LANGUAGE_TABLE
 from mclt.utils.config import load_config
 from mclt.utils.experiments import (
-    create_datamodule, run_experiment,
+    create_datamodule,
     create_multilingual_model_trainer,
+    run_experiment,
 )
 
 config = load_config('train')
 config.update(load_config(config['method']))
 
-for task_name in TASK_LANG_MATRIX.columns:
+for task_name in TASK_LANGUAGE_TABLE.columns:
     config['tasks'] = [task_name]
     config['languages'] = None
     for repeat in range(config['num_repeats']):
@@ -30,7 +30,7 @@ for task_name in TASK_LANG_MATRIX.columns:
 config = load_config('train')
 config.update(load_config(config['method']))
 
-for lang_name, _ in TASK_LANG_MATRIX.iterrows():
+for lang_name, _ in TASK_LANGUAGE_TABLE.iterrows():
     config['tasks'] = None
     config['languages'] = lang_name
     for repeat in range(config['num_repeats']):

@@ -1,7 +1,7 @@
 import abc
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Callable, Dict, Optional, Type
+from typing import Any, Callable, Dict, Optional
 
 import numpy as np
 import torch
@@ -11,7 +11,7 @@ from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADER
 from sklearn.model_selection import train_test_split
 from toolz import identity
 from torch.utils.data import DataLoader
-from transformers import DataCollatorWithPadding, PreTrainedTokenizerFast
+from transformers import PreTrainedTokenizerFast
 
 from mclt.data.dataset import MultiTaskDataset
 from mclt.utils.collator import CustomDataCollatorWithPadding
@@ -103,7 +103,7 @@ class BaseDataModule(LightningDataModule, abc.ABC):
 
             sample = {
                 'labels': labels_int,
-                'task': [self.name],
+                'task': [self.task_lang],
                 **tokenized,
             }
 
@@ -167,7 +167,7 @@ class BaseDataModule(LightningDataModule, abc.ABC):
 class MultiTaskDataModule(LightningDataModule):
     def __init__(
         self,
-        datamodules: list[BaseDataModule],
+        tasks: list[dict],
         tokenizer: PreTrainedTokenizerFast,
         batch_size: int = 16,
         num_workers: int = 8,
@@ -177,31 +177,46 @@ class MultiTaskDataModule(LightningDataModule):
         self._tokenizer = tokenizer
         self._batch_size = batch_size
         self._num_workers = num_workers
-        self._datamodules = sorted(datamodules, key=lambda d: d.name)
+        self._tasks = sorted(tasks, key=lambda d: (d['task'], d['language']))
+
+        for item in self._tasks:
+            item['datamodule'].task_lang = f'{item["task"]}-{item["language"]}'
+
         self._train_dataset = None
         self._val_datasets = None
         self._test_datasets = None
 
     @property
     def name(self) -> str:
-        return ' + '.join(d.name for d in self._datamodules)
+        languages, tasks = [], []
+        for t in self._tasks:
+            languages.append(t['language'])
+            tasks.append(t['task'])
+        return f'{", ".join(tasks)} - {", ".join(languages)}'
 
     @property
     def tasks(self) -> dict[str, TaskDefinition]:
-        return {d.name: TaskDefinition(d.name, d.num_labels, d.multilabel) for d in self._datamodules}
+        tasks = {}
+        for t in self._tasks:
+            d = t['datamodule']
+            name = f'{t["task"]}-{t["language"]}'
+            tasks[name] = TaskDefinition(name, d.num_labels, d.multilabel)
+        return tasks
 
     def prepare_data(self) -> None:
-        for datamodule in self._datamodules:
-            datamodule.prepare_data()
+        for task in self._tasks:
+            task['datamodule'].prepare_data()
 
     def setup(self, stage: Optional[str] = None) -> None:
         train_datasets, val_datasets, test_datasets, names = [], [], [], []
-        for datamodule in self._datamodules:
+        for task in self._tasks:
+            datamodule = task['datamodule']
             datamodule.setup(stage=stage)
             train_datasets.append(datamodule.train_dataset)
             val_datasets.append(datamodule.val_dataset)
             test_datasets.append(datamodule.test_dataset)
-            names.append(datamodule.name)
+            name = f'{task["task"]}-{task["language"]}'
+            names.append(name)
 
         self._train_dataset = MultiTaskDataset(
             datasets={name: dataset for name, dataset in zip(names, train_datasets)}

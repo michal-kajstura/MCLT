@@ -30,14 +30,14 @@ Uralic: et, el, sr, fi, hu
 Romance/Germanic: de, pt, fr, ro, en, es, ...
 
 ## Datasets
-|     | Sentiment            | Reviews                         | Hate-speech                                                                                            | Emotions                 | NLI    |
-|-----|----------------------|---------------------------------|--------------------------------------------------------------------------------------------------------|--------------------------|--------|
-| pl  | MTSC                 | PolEmo 2.0  <br> AllegroReviews | HateSpeechPL <br> CyberbullyingDetection                                                               |                          | CDSC-E |
-| sk  | MTSC, Sentigrade     |                                 |                                                                                                        |                          |        |
-| si  | MTSC, SentiNews      |                                 |                                                                                                        |                          |        |
-| cz  | CSFD <br> FacebookCZ | MallCZ                          |                                                                                                        |                          |        |
-| en  | MTSC                 | AmazonReviews                   | HateSpeech18 <br> HateSpeechOffensive <br> MeasuringHateSpeech <br> TweetsHateSpeech  <br> HatEval2019 |  SemEval <br> GoEmotions |        |
-| de  | MTSC                 | AmazonReviews                   | FBHateSpeech <br> rp_mod_crowd                                                                         |                          | XNLI   |
-| fr  |                      | AmazonReviews                   | HateSpeechMLMA                                                                                         |                          | XNLI   |
-| es  | MTSC                 | AmazonReviews                   | HaterSpeech <br> HatEval2019                                                                           | SemEval                  | XNLI   |
-| ru  | MTSC                 | rureviews                       | AbusiveLanguageDataset                                                                           | cedr                 | XNLI   |
+|     | Sentiment            | Reviews                         | Hate-speech                                                                                            | Emotions                | NLI     |
+|-----|----------------------|---------------------------------|--------------------------------------------------------------------------------------------------------|-------------------------|---------|
+| pl  | MTSC                 | PolEmo 2.0  <br> AllegroReviews | HateSpeechPL <br> CyberbullyingDetection                                                               | XED                     | CDSC-E  |
+| sk  | MTSC, Sentigrade     |                                 |                                                                                                        | XED                     |         |
+| si  | MTSC, SentiNews      |                                 |                                                                                                        | XED                     |         |
+| cz  | CSFD <br> FacebookCZ | MallCZ                          |                                                                                                        | XED                     | csfever |
+| en  | MTSC                 | AmazonReviews                   | HateSpeech18 <br> HateSpeechOffensive <br> MeasuringHateSpeech <br> TweetsHateSpeech  <br> HatEval2019 | SemEval <br> GoEmotions |         |
+| de  | MTSC                 | AmazonReviews                   | FBHateSpeech <br> rp_mod_crowd                                                                         | XED                     | XNLI    |
+| fr  |                      | AmazonReviews                   | HateSpeechMLMA                                                                                         |                         | XNLI    |
+| es  | MTSC                 | AmazonReviews                   | HaterSpeech <br> HatEval2019                                                                           | SemEval                 | XNLI    |
+| ru  | MTSC                 | rureviews                       | AbusiveLanguageDataset                                                                           | cedr                    | XNLI    |

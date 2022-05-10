@@ -6,7 +6,7 @@ from transformers import PreTrainedModel
 from transformers.modeling_outputs import ModelOutput
 
 from mclt.data.base import TaskDefinition
-from mclt.training.loss import BaseMultiTaskLoss, MultiTaskLoss
+from mclt.training.loss import BaseMultiTaskLoss, UniformWeightedLoss
 from mclt.utils.grouping import group_by_task
 
 
@@ -23,7 +23,7 @@ class MultiTaskTransformer(nn.Module):
             model_dim=transformer.config.hidden_size,
             task_num_labels={k: t.num_labels for k, t in tasks.items()},
         )
-        self._loss_func = loss_func or MultiTaskLoss(tasks)
+        self._loss_func = loss_func or UniformWeightedLoss(tasks)
 
     def forward(
         self,
@@ -36,11 +36,7 @@ class MultiTaskTransformer(nn.Module):
             input_ids=input_ids,
             attention_mask=attention_mask,
         )
-
-        if isinstance(transformer_output, ModelOutput):
-            last_hidden_state = transformer_output.last_hidden_state
-        else:
-            last_hidden_state = transformer_output
+        last_hidden_state = transformer_output.last_hidden_state
 
         outputs_per_task = self._multi_task_head(
             last_hidden_state=last_hidden_state,

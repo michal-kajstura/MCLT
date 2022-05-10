@@ -1,5 +1,4 @@
 import abc
-from itertools import chain
 from typing import Literal, Optional, Union
 
 import datasets
@@ -554,8 +553,6 @@ class MTSCDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
 
 
 class CEDRDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
-    _dataset_path = DATASETS_PATH / 'multilingual_twitter_sentiment_classification/tweets'
-
     def _load_dataset(self):
         dataset = datasets.load_dataset('cedr')
         dataset = concatenate_datasets([dataset['train'], dataset['test']])
@@ -566,6 +563,7 @@ class CEDRDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
             for i in range(num_labels):
                 row[str(i)] = 1 if i in labels else 0
             return row
+
         dataset = dataset.map(onehot)
         return dataset
 
@@ -583,7 +581,7 @@ class CEDRDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
                 '2',
                 '3',
                 '4',
-            ]
+            ],
         }
 
     @property
@@ -659,10 +657,13 @@ class HatEvalDataModule(BaseHuggingfaceDataModule):
 
     def _load_dataset(self):
         data = {
-            'validation' if split == 'dev' else split: datasets.load_dataset(
+            'validation'
+            if split == 'dev'
+            else split: datasets.load_dataset(
                 'csv',
                 data_files=str(self._dataset_path / f'hateval2019_{self._language}_{split}.csv'),
-            )['train'] for split in ('train', 'dev', 'test')
+            )['train']
+            for split in ('train', 'dev', 'test')
         }
         return DatasetDict(data)
 
@@ -692,11 +693,12 @@ class MallCZDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
             dataset = datasets.load_dataset(
                 'csv',
                 data_files=str(self._dataset_path / f'{label}.txt'),
+                delimiter='\x1f',
             )['train']
-            dataset['label'] = label_id
+            dataset = dataset.add_column('label', [label_id] * len(dataset))
             data.append(dataset)
 
-        dataset = concatenate_datasets(data)
+        dataset = concatenate_datasets(data, axis=0)
         return dataset
 
     @property
@@ -708,4 +710,114 @@ class MallCZDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
         return {
             'text': 'text',
             'label': 'label',
+        }
+
+
+class CSFDDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
+    _dataset_path = DATASETS_PATH / 'csfd'
+
+    def _load_dataset(self):
+        label_mapping = {
+            'negative': 0,
+            'neutral': 1,
+            'positive': 2,
+        }
+        data = []
+        for label, label_id in label_mapping.items():
+            dataset = datasets.load_dataset(
+                'csv',
+                data_files=str(self._dataset_path / f'{label}.txt'),
+                delimiter='\x1f',
+            )['train']
+            dataset = dataset.add_column('label', [label_id] * len(dataset))
+            data.append(dataset)
+
+        dataset = concatenate_datasets(data, axis=0)
+        return dataset
+
+    @property
+    def name(self) -> str:
+        return f'csfd'
+
+    @property
+    def _column_mapping(self) -> dict[str, str]:
+        return {
+            'text': 'text',
+            'label': 'label',
+        }
+
+
+class CSFeverDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
+    @property
+    def name(self) -> str:
+        return f'ctu-aic/csfever_nli'
+
+    @property
+    def _column_mapping(self) -> dict[str, str]:
+        return {
+            'text': ['claim', 'evidence'],
+            'label': 'label',
+        }
+
+
+class XEDDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
+    _dataset_path = DATASETS_PATH / 'XED'
+
+    def __init__(
+        self,
+        language: Literal['pl', 'cz'],
+        tokenizer: PreTrainedTokenizerFast,
+        train_size: float = 0.8,
+        batch_size: int = 16,
+        num_workers: int = 8,
+        seed: int = 2718,
+        max_length: int = int(1e10),
+        train_sample_size: Optional[int] = 10000,
+    ):
+        super().__init__(
+            tokenizer=tokenizer,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            seed=seed,
+            max_length=max_length,
+            train_sample_size=train_sample_size,
+        )
+        self._language = language
+        self._train_size = train_size
+
+    def _load_dataset(self):
+        dataset = datasets.load_dataset(
+            'csv',
+            data_files=str(self._dataset_path / f'{self._language}-projections.tsv'),
+            delimiter='\t',
+        )['train']
+
+        num_labels = 8
+
+        def onehot(row):
+            labels = [int(l.strip()) for l in row.pop('label').split(',')]
+            for i in range(num_labels):
+                row[str(i)] = 1 if i in labels else 0
+            return row
+
+        dataset = dataset.map(onehot)
+        return dataset
+
+    @property
+    def name(self) -> str:
+        return f'XED_{self._language}'
+
+    @property
+    def _column_mapping(self) -> dict[str, str]:
+        return {
+            'text': 'text',
+            'label': [
+                '0',
+                '1',
+                '2',
+                '3',
+                '4',
+                '6',
+                '7',
+            ],
         }

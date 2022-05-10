@@ -1,5 +1,5 @@
 train:
-  method: finetune
+  method: linear
   tasks:
   languages:
   model: xlm-roberta-base
