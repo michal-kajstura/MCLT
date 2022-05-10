@@ -44,7 +44,7 @@ class MultitaskTransformerTrainer(pl.LightningModule, abc.ABC):
                         for task_name, metrics in metrics.items()
                     }
                 )
-                for set_name in ('train_split', 'val_split', 'test_split')
+                for set_name in ('train_set', 'val_set', 'test_set')
             }
         )
         self._task_names = list(tasks)
@@ -55,7 +55,7 @@ class MultitaskTransformerTrainer(pl.LightningModule, abc.ABC):
         batch_idx: int,
     ) -> dict[str, Tensor]:
         self.lr_schedulers().step()  # type: ignore
-        return self._step(batch, 'train_split', 'train')['loss']
+        return self._step(batch, 'train_set', 'train')['loss']
 
     def validation_step(  # type: ignore
         self,
@@ -64,7 +64,7 @@ class MultitaskTransformerTrainer(pl.LightningModule, abc.ABC):
         *args,
     ):
         dataset_idx = args[0] if args else 0
-        o = self._step(batch, 'val_split', self._task_names[dataset_idx])
+        o = self._step(batch, 'val_set', self._task_names[dataset_idx])
         return o['loss']
 
     def test_step(  # type: ignore
@@ -74,7 +74,7 @@ class MultitaskTransformerTrainer(pl.LightningModule, abc.ABC):
         *args,
     ):
         dataset_idx = args[0] if args else 0
-        return self._step(batch, 'test_split', self._task_names[dataset_idx])['loss']
+        return self._step(batch, 'test_set', self._task_names[dataset_idx])['loss']
 
     def _epoch_end(
         self,
@@ -92,13 +92,13 @@ class MultitaskTransformerTrainer(pl.LightningModule, abc.ABC):
         self.log(f'{step_type}/f1_score', global_f1)
 
     def training_epoch_end(self, outputs) -> None:
-        self._epoch_end(outputs, 'train_split')
+        self._epoch_end(outputs, 'train_set')
 
     def validation_epoch_end(self, outputs) -> None:
-        self._epoch_end(outputs, 'val_split')
+        self._epoch_end(outputs, 'val_set')
 
     def test_epoch_end(self, outputs) -> None:
-        self._epoch_end(outputs, 'test_split')
+        self._epoch_end(outputs, 'test_set')
 
     def configure_optimizers(self):
         optimizer = AdamW(
