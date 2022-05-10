@@ -106,6 +106,7 @@ def run_experiment(
         json.dump(metrics, file, indent=2)
 
     checkpoint_path.unlink(missing_ok=True)
+    logger.experiment.finish()
 
 
 def create_datamodule(config) -> MultiTaskDataModule:
