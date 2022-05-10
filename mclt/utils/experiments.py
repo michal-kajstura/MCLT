@@ -169,6 +169,12 @@ def create_multilingual_model_trainer(config, tasks: dict[str, TaskDefinition]):
         transformer.base_model.apply(lambda param: param.requires_grad_(False))
     elif isinstance(freeze_backbone, str) and freeze_backbone == 'embeddings':
         transformer.base_model.embeddings.apply(lambda param: param.requires_grad_(False))
+    elif isinstance(freeze_backbone, int):
+        transformer.base_model.embeddings.apply(lambda param: param.requires_grad_(False))
+        for i, layer in enumerate(transformer.base_model.encoder.layer):
+            if i >= freeze_backbone:
+                break
+            layer.apply(lambda param: param.requires_grad_(False))
 
     return MultitaskTransformerTrainer(
         model=model,

@@ -1,5 +1,5 @@
 train:
-  method: linear
+  method: freeze_part
   tasks:
   languages:
   model: xlm-roberta-base
@@ -36,6 +36,11 @@ linear:
 freeze_embeddings:
   learning_rate: 0.0005
   batch_size: 16
-  gradient_checkpointing: true
+  gradient_checkpointing: false
   freeze_backbone: embeddings
 
+freeze_part:
+  learning_rate: 0.00005
+  batch_size: 16
+  gradient_checkpointing: false
+  freeze_backbone: 4
