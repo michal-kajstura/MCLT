@@ -554,7 +554,7 @@ class MTSCDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
 
 class CEDRDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
     def _load_dataset(self):
-        dataset = datasets.load_dataset('cedr')
+        dataset = datasets.load_from_disk(str(DATASETS_PATH / 'cedr'))
         dataset = concatenate_datasets([dataset['train'], dataset['test']])
         num_labels = 5
 
