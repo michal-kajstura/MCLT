@@ -26,7 +26,6 @@ for task_name in TASK_LANGUAGE_TABLE.columns:
             create_datamodule=create_datamodule,
             create_model_trainer=create_multilingual_model_trainer,
             experiment_name='multi_language',
-            experiment_tag=config['method'],
         )
 
 
@@ -44,5 +43,4 @@ for lang_name, _ in TASK_LANGUAGE_TABLE.iterrows():
             create_datamodule=create_datamodule,
             create_model_trainer=create_multilingual_model_trainer,
             experiment_name='multi_task',
-            experiment_tag=config['method'],
         )

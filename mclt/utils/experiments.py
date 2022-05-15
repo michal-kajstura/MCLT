@@ -44,7 +44,6 @@ def run_experiment(
     create_datamodule: Callable[[Dict], MultiTaskDataModule],
     create_model_trainer: Callable[[Dict, dict[str, TaskDefinition]], MultitaskTransformerTrainer],
     experiment_name: str,
-    experiment_tag: str,
 ):
     seed = config['model_random_state']
     task_names = '_'.join(config['tasks']) if config['tasks'] else 'multitask'
@@ -77,7 +76,6 @@ def run_experiment(
     logger.log_hyperparams(
         {
             **config,
-            'experiment_tag': experiment_tag,
             'experiment_name': experiment_name,
         }
     )
