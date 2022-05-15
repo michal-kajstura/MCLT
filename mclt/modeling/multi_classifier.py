@@ -23,7 +23,7 @@ class MultiTaskTransformer(nn.Module):
             model_dim=transformer.config.hidden_size,
             task_num_labels={k: t.num_labels for k, t in tasks.items()},
         )
-        self._loss_func = loss_func or UniformWeightedLoss(tasks)
+        self.loss_func = loss_func or UniformWeightedLoss(tasks)
 
     def forward(
         self,
@@ -49,7 +49,7 @@ class MultiTaskTransformer(nn.Module):
             labels_per_task = group_by_task(task_ids, labels=labels)
             for task in labels_per_task:
                 outputs_per_task[task]['labels'] = labels_per_task[task]['labels']
-            outputs_per_task['loss'] = self._loss_func(outputs_per_task)
+            outputs_per_task['loss'] = self.loss_func(outputs_per_task)
 
         return outputs_per_task
 

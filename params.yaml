@@ -1,5 +1,5 @@
 train:
-  method: freeze_part
+  method: finetune
   tasks:
   languages:
   model: xlm-roberta-base
@@ -10,8 +10,8 @@ train:
   train_sample_size: 10000
   num_workers: 8
   gpus: [0]
-  max_steps: 10000
-  warmup_steps_ratio: 0.1
+  max_steps: 15000
+  warmup_steps_ratio: 0.05
   batch_size: 16
   accumulate_grad_batches: 1
   max_length: 256
@@ -22,14 +22,14 @@ train:
 
 finetune:
   learning_rate: 0.00001
-  batch_size: 16
+  batch_size: 32
   accumulate_grad_batches: 1
-  gradient_checkpointing: false
+  gradient_checkpointing: true
   freeze_backbone: false
 
 linear:
   learning_rate: 0.001
-  batch_size: 64
+  batch_size: 32
   gradient_checkpointing: false
   freeze_backbone: true
 
@@ -40,7 +40,12 @@ freeze_embeddings:
   freeze_backbone: embeddings
 
 freeze_part:
-  learning_rate: 0.00005
+  learning_rate: 0.00001
   batch_size: 16
   gradient_checkpointing: false
   freeze_backbone: 4
+
+adapter:
+  learning_rate: 0.0001
+  batch_size: 16
+  gradient_checkpointing: false

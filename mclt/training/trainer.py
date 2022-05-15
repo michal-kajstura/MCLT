@@ -4,11 +4,13 @@ from typing import Dict
 import pytorch_lightning as pl
 import torch
 from torch import Tensor, nn
+from torch.optim import AdamW
 from torchmetrics import F1Score, MetricCollection
-from transformers import AdamW, get_linear_schedule_with_warmup
+from transformers import get_linear_schedule_with_warmup
 
 from mclt.data.base import TaskDefinition
 from mclt.modeling.multi_classifier import MultiTaskTransformer
+from mclt.training import UncertaintyWeightedLoss
 
 
 class MultitaskTransformerTrainer(pl.LightningModule, abc.ABC):
@@ -54,7 +56,8 @@ class MultitaskTransformerTrainer(pl.LightningModule, abc.ABC):
         batch: dict[str, Tensor],
         batch_idx: int,
     ) -> dict[str, Tensor]:
-        self.lr_schedulers().step()  # type: ignore
+        if (scheduler := self.lr_schedulers()) is not None:
+            scheduler.step()  # type: ignore
         return self._step(batch, 'train_set', 'train')['loss']
 
     def validation_step(  # type: ignore
@@ -102,7 +105,14 @@ class MultitaskTransformerTrainer(pl.LightningModule, abc.ABC):
 
     def configure_optimizers(self):
         optimizer = AdamW(
-            params=self.model.parameters(),
+            params=
+                self.model.parameters(),
+            # *[
+            #     {'params': classifier.parameters(), 'name': name}
+            #     for name, classifier
+            #     in self.model._multi_task_head._classifiers.items()
+            # ],
+            # {'params': self.model._transformer.parameters(), 'name': 'backbone'},
             lr=self._learning_rate,
             weight_decay=self._weight_decay,
         )
@@ -162,5 +172,82 @@ class MultitaskTransformerTrainer(pl.LightningModule, abc.ABC):
             labels = group['labels'].int()
             self._metrics[step_type][task].update(logits, labels)
 
-        self.log(f'{step_type}/{dataset_name}/loss', loss, on_epoch=True, add_dataloader_idx=False)
+        loss_func = self.model.loss_func
+        if isinstance(loss_func, UncertaintyWeightedLoss):
+            self.log_dict(
+                {f'{step_type}/{dataset_name}/{k}_weight': v.data.item() for k, v in loss_func._log_squared_variances.items()},
+                add_dataloader_idx=False,
+            )
+
+        self.log('train/loss', loss)
         return {'loss': loss}
+
+
+class GradSurgeryTrainer(MultitaskTransformerTrainer):
+
+    def __init__(
+        self,
+        model: MultiTaskTransformer,
+        tasks: dict[str, TaskDefinition],
+        learning_rate: float = 1e-5,
+        warmup_steps_ratio: float = 0.1,
+        weight_decay: float = 0.01,
+    ):
+        super().__init__(
+            model=model,
+            tasks=tasks,
+            learning_rate=learning_rate,
+            warmup_steps_ratio=warmup_steps_ratio,
+            weight_decay=weight_decay,
+        )
+        self.automatic_optimization = False
+
+    #  self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args, **kwargs
+    # ) -> None:
+    #     pass
+    # def backward(
+
+    def training_step(  # type: ignore
+        self,
+        batch: dict[str, Tensor],
+        batch_idx: int,
+    ) -> dict[str, Tensor]:
+        losses = super().training_step(batch, batch_idx)
+        optimizer = self.optimizers().optimizer
+        optimizer.zero_grad()
+
+        # l = []
+        scaler = self.trainer.accelerator.precision_plugin.scaler
+        scaled_losses = [
+            scaler.scale(loss) for loss in losses.values()
+        ]
+
+        # scaler.unscale_(optimizer)
+        self.model.loss_func.backward(scaled_losses, optimizer, scaler)
+
+        self.log_dict(losses)
+
+        # optimizer.step()
+        scaler.step(optimizer)
+        scaler.update()
+
+
+class AdapterTuneTrainer(MultitaskTransformerTrainer):
+
+    def __init__(
+        self,
+        model: MultiTaskTransformer,
+        tasks: dict[str, TaskDefinition],
+        learning_rate: float = 1e-5,
+        warmup_steps_ratio: float = 0.1,
+        weight_decay: float = 0.01,
+        adapter_learning_rate: float = 1e-4,
+        adapter_finetune_steps_ratio: float = 0.1,
+    ):
+        super().__init__(
+            model=model,
+            tasks=tasks,
+            learning_rate=learning_rate,
+            warmup_steps_ratio=warmup_steps_ratio,
+            weight_decay=weight_decay,
+        )

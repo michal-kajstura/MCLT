@@ -1,6 +1,6 @@
 from mclt.training.loss import (
     UniformWeightedLoss, RandomWeightedLoss, UncertaintyWeightedLoss,
-    GradVaccineLoss,
+    GradVaccineLoss, GradSurgeryLoss,
 )
 
 LOSS_FUNCS = {
@@ -8,4 +8,5 @@ LOSS_FUNCS = {
     'random': RandomWeightedLoss,
     'uncertainty': UncertaintyWeightedLoss,
     'grad_vaccine': GradVaccineLoss,
+    'grad_surgery': GradSurgeryLoss,
 }

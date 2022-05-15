@@ -760,7 +760,7 @@ class CSFeverDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
         }
 
 
-class XEDDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
+class XEDDataModule(BaseHuggingfaceDataModule):
     _dataset_path = DATASETS_PATH / 'XED'
 
     def __init__(
@@ -789,22 +789,25 @@ class XEDDataModule(RandomSplitMixin, BaseHuggingfaceDataModule):
         return True
 
     def _load_dataset(self):
-        dataset = datasets.load_dataset(
-            'csv',
-            data_files=str(self._dataset_path / f'{self._language}-projections.tsv'),
-            delimiter='\t',
-        )['train']
+        dataset_dict = {}
+        for split in ('train', 'val', 'test'):
+            dataset = datasets.load_dataset(
+                'csv',
+                data_files=str(self._dataset_path / f'processed/{self._language}/{split}.csv'),
+            )['train']
 
-        num_labels = 8
+            num_labels = 8
 
-        def onehot(row):
-            labels = [int(l.strip()) for l in row.pop('label').split(',')]
-            for i in range(num_labels):
-                row[str(i)] = 1 if i in labels else 0
-            return row
+            def onehot(row):
+                labels = [int(l.strip()) for l in row.pop('label').split(',')]
+                for i in range(num_labels):
+                    row[str(i)] = 1 if i in labels else 0
+                return row
 
-        dataset = dataset.map(onehot).filter(lambda example: example['text'] is not None)
-        return dataset
+            dataset = dataset.map(onehot).filter(lambda example: example['text'] is not None)
+            dataset_dict['validation' if split == 'val' else split] = dataset
+
+        return DatasetDict(dataset_dict)
 
     @property
     def name(self) -> str:

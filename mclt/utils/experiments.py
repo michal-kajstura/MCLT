@@ -1,14 +1,18 @@
 import json
+import logging
 import os
 import warnings
 from itertools import chain
 from pathlib import Path
 from typing import Any, Callable, Dict
 
+import datasets
 import pandas as pd
+import transformers
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.loggers import WandbLogger
+from requests.exceptions import ConnectionError
+from retry import retry
 from transformers import AutoModel, AutoTokenizer
 
 from mclt import (
@@ -17,12 +21,24 @@ from mclt import (
 )
 from mclt.data import DATASETS, TASK_LANGUAGE_TABLE, DATASET_TO_TASK_LANG
 from mclt.data.base import MultiTaskDataModule, TaskDefinition
+from mclt.modeling.adapter_roberta import add_adapter_layers
 from mclt.modeling.multi_classifier import MultiTaskTransformer
-from mclt.training import LOSS_FUNCS
-from mclt.training.trainer import MultitaskTransformerTrainer
+from mclt.training import LOSS_FUNCS, GradSurgeryLoss
+from mclt.training.trainer import MultitaskTransformerTrainer, GradSurgeryTrainer
 from mclt.utils.seed import set_seeds
 
+transformers.logging.set_verbosity_error()
+datasets.logging.set_verbosity_error()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
+
+@retry(
+    exceptions=(ConnectionError, ValueError),
+    tries=30,
+    delay=30,
+    logger=logger,
+)
 def run_experiment(
     config: dict[str, Any],
     create_datamodule: Callable[[Dict], MultiTaskDataModule],
@@ -48,13 +64,23 @@ def run_experiment(
         )
         return
 
-    matrics_log_path.parent.mkdir(exist_ok=True, parents=True)
+    datamodule = create_datamodule(config)
+    tasks = datamodule.tasks
+    model_trainer = create_model_trainer(config, tasks)
 
+    matrics_log_path.parent.mkdir(exist_ok=True, parents=True)
     mlflow_tracking_uri = os.environ.get('MLFLOW_TRACKING_URI', DEFAULT_MLFLOW_TRACKING_URI)
+    from pytorch_lightning.loggers import WandbLogger
     logger = WandbLogger(
-        project='mclt',
+        project='MTML',
     )
-    logger.log_hyperparams({**config, 'experiment_tag': experiment_tag})
+    logger.log_hyperparams(
+        {
+            **config,
+            'experiment_tag': experiment_tag,
+            'experiment_name': experiment_name,
+        }
+    )
 
     checkpoint_path = (
         Path(mlflow_tracking_uri)
@@ -68,7 +94,7 @@ def run_experiment(
     checkpoint_path.parent.mkdir(exist_ok=True, parents=True)
 
     trainer = Trainer(
-        max_steps=config['max_steps'],
+        max_steps=config['max_steps'] * len(tasks),
         logger=logger,
         callbacks=[
             ModelCheckpoint(
@@ -87,11 +113,11 @@ def run_experiment(
         gpus=config['gpus'],
         precision=16 if config['gpus'] else 32,
         accumulate_grad_batches=config['accumulate_grad_batches'],
-        val_check_interval=config['val_check_interval'],
+        val_check_interval=config['val_check_interval'] * len(tasks),
+        num_sanity_val_steps=0,
     )
 
-    datamodule = create_datamodule(config)
-    model_trainer = create_model_trainer(config, datamodule.tasks)
+    # logger.experiment.watch(model_trainer, log='all')
     trainer.fit(
         model=model_trainer,
         datamodule=datamodule,
@@ -151,13 +177,15 @@ def create_multilingual_model_trainer(config, tasks: dict[str, TaskDefinition]):
 
     transformer = AutoModel.from_pretrained(
         config['model'],
+        add_pooling_layer=False,
     )
 
-    loss_func = LOSS_FUNCS[config['loss_func']]
+    loss_func = LOSS_FUNCS[config['loss_func']](tasks)
+
     model = MultiTaskTransformer(
         transformer=transformer,
         tasks=tasks,
-        loss_func=loss_func(tasks),
+        loss_func=loss_func,
     )
 
     if config['gradient_checkpointing']:
@@ -175,7 +203,14 @@ def create_multilingual_model_trainer(config, tasks: dict[str, TaskDefinition]):
                 break
             layer.apply(lambda param: param.requires_grad_(False))
 
-    return MultitaskTransformerTrainer(
+    if config['method'] == 'adapter':
+        add_adapter_layers(transformer.base_model)
+        transformer.base_model.apply(lambda param: param.requires_grad_(False))
+        for layer in transformer.base_model.encoder.layer:
+            layer.output.adapter.requires_grad_(True)
+
+    trainer_class = GradSurgeryTrainer if isinstance(loss_func, GradSurgeryLoss) else MultitaskTransformerTrainer
+    return trainer_class(
         model=model,
         tasks=tasks,
         learning_rate=config['learning_rate'],
