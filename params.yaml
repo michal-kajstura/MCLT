@@ -1,10 +1,10 @@
 train:
-  method: finetune
+  method: adapter_tune
   tasks:
   languages:
   model: xlm-roberta-base
   loss_func: uniform
-  num_repeats: 1
+  num_repeats: 5
   model_random_state: 2022
   data_random_state: 2022
   train_sample_size: 10000
@@ -49,3 +49,10 @@ adapter:
   learning_rate: 0.0001
   batch_size: 16
   gradient_checkpointing: false
+
+adapter_tune:
+  learning_rate: 0.00001
+  batch_size: 16
+  gradient_checkpointing: false
+  adapter_learning_rate: 0.0001
+  adapter_finetune_steps_ratio: 0.6

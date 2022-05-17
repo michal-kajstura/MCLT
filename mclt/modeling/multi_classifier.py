@@ -18,7 +18,7 @@ class MultiTaskTransformer(nn.Module):
         loss_func: Optional[BaseMultiTaskLoss] = None,
     ):
         super().__init__()
-        self._transformer = transformer
+        self.transformer = transformer
         self._multi_task_head = MultiTaskHead(
             model_dim=transformer.config.hidden_size,
             task_num_labels={k: t.num_labels for k, t in tasks.items()},
@@ -32,7 +32,7 @@ class MultiTaskTransformer(nn.Module):
         task_ids: list[str],
         labels: Optional[Tensor] = None,
     ) -> dict[str, Any]:
-        transformer_output = self._transformer(
+        transformer_output = self.transformer(
             input_ids=input_ids,
             attention_mask=attention_mask,
         )

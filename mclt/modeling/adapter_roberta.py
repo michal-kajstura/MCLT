@@ -2,12 +2,10 @@ from typing import Optional
 
 from torch import nn
 from transformers import RobertaModel
-from transformers.models.roberta.modeling_roberta import RobertaLayer
 
 
 def add_adapter_layers(model: RobertaModel):
     for layer in model.encoder.layer:
-        layer: RobertaLayer
         adapter_output = AdapterRobertaOutput(model.config)
         keys = adapter_output.load_state_dict(layer.output.state_dict(), strict=False)
         assert all('adapter' in key for key in keys.missing_keys)

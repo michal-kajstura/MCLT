@@ -3,6 +3,7 @@ from typing import Dict
 
 import pytorch_lightning as pl
 import torch
+from pytorch_lightning import Trainer
 from torch import Tensor, nn
 from torch.optim import AdamW
 from torchmetrics import F1Score, MetricCollection
@@ -27,6 +28,8 @@ class MultitaskTransformerTrainer(pl.LightningModule, abc.ABC):
         self._warmup_steps_ratio = warmup_steps_ratio
         self._weight_decay = weight_decay
         self.model = model
+        self.tasks = tasks
+
         metrics = {
             task_name: MetricCollection(
                 {
@@ -202,11 +205,6 @@ class GradSurgeryTrainer(MultitaskTransformerTrainer):
         )
         self.automatic_optimization = False
 
-    #  self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args, **kwargs
-    # ) -> None:
-    #     pass
-    # def backward(
-
     def training_step(  # type: ignore
         self,
         batch: dict[str, Tensor],
@@ -251,3 +249,21 @@ class AdapterTuneTrainer(MultitaskTransformerTrainer):
             warmup_steps_ratio=warmup_steps_ratio,
             weight_decay=weight_decay,
         )
+        self._adapter_learning_rate = adapter_learning_rate
+        self._shared_training_steps_ratio = 1.0 - adapter_finetune_steps_ratio
+        self._adapter_finetune_steps_ratio = adapter_finetune_steps_ratio / len(tasks)
+        self._adapter_tuning_phase = False
+
+    def training_step(  # type: ignore
+        self,
+        batch: dict[str, Tensor],
+        batch_idx: int,
+    ) -> dict[str, Tensor]:
+        if not self._adapter_tuning_phase and self.global_step >= self._shared_training_steps_ratio:
+            t: Trainer = self.trainer
+            t.reset_train_dataloader()
+
+        return super().training_step(batch, batch_idx)
+
+    def on_train_epoch_start(self) -> None:
+        pass

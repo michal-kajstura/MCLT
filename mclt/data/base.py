@@ -1,7 +1,7 @@
 import abc
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Collection
 
 import numpy as np
 import torch
@@ -218,11 +218,31 @@ class MultiTaskDataModule(LightningDataModule):
             name = f'{task["task"]}-{task["language"]}'
             names.append(name)
 
+        self._datasets = {
+            name: {
+                'train': train,
+                'val': val,
+                'test': test,
+            }
+            for name, train, val, test in zip(names, train_datasets, val_datasets, test_datasets)
+        }
+        self.set_datasets()
+
+    def set_datasets(self, names: Optional[Collection[str]] = None):
+        names = names or self.tasks.keys()
+
         self._train_dataset = MultiTaskDataset(
-            datasets={name: dataset for name, dataset in zip(names, train_datasets)}
+            datasets={
+                name: datasets['train']
+                for name, datasets in self._datasets.items() if name in names
+            }
         )
-        self._val_datasets = val_datasets
-        self._test_datasets = test_datasets
+        self._val_datasets = [
+            datasets['val'] for name, datasets in self._datasets.items() if name in names
+        ]
+        self._test_datasets = [
+            datasets['test'] for name, datasets in self._datasets.items() if name in names
+        ]
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:
         return self._create_dataloader(
