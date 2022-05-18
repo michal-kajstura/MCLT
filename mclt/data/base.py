@@ -208,6 +208,12 @@ class MultiTaskDataModule(LightningDataModule):
             task['datamodule'].prepare_data()
 
     def setup(self, stage: Optional[str] = None) -> None:
+        print('\n' * 3)
+        print('stage: ', stage)
+        print('\n' * 3)
+        if stage is not None:
+            return
+
         train_datasets, val_datasets, test_datasets, names = [], [], [], []
         for task in self._tasks:
             datamodule = task['datamodule']
