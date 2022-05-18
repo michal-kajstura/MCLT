@@ -304,8 +304,8 @@ def run_adaptune_experiment(
     per_task_finetune_ratio = adapter_finetune_steps_ratio / len(tasks)
 
     trainer = _create_trainer(
-        config['max_steps'] * len(tasks) * shared_training_steps_ratio,
-        config['val_check_interval'] * len(tasks) * shared_training_steps_ratio,
+        int(config['max_steps'] * len(tasks) * shared_training_steps_ratio),
+        int(config['val_check_interval'] * len(tasks) * shared_training_steps_ratio),
     )
     trainer.fit(
         model=model_trainer,
@@ -315,7 +315,6 @@ def run_adaptune_experiment(
     model_trainer.cpu()
     checkpoint_callback = next(c for c in trainer.callbacks if isinstance(c, ModelCheckpoint))
     best_model_path = checkpoint_callback.best_model_path
-    print(best_model_path)
     model_trainer.load_from_checkpoint(
         best_model_path,
         model=model_trainer.model,
@@ -333,6 +332,7 @@ def run_adaptune_experiment(
     for task_name, task in tasks.items():
         print(f'training {task_name} adapter')
         datamodule.set_datasets([task_name])
+
         trainer = _create_trainer(
             int(config['max_steps'] * per_task_finetune_ratio),
             int(config['val_check_interval'] * per_task_finetune_ratio),

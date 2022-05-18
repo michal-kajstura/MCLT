@@ -231,15 +231,19 @@ class MultiTaskDataModule(LightningDataModule):
     def set_datasets(self, names: Optional[Collection[str]] = None):
         names = names or self.tasks.keys()
 
+        print('names: ', names)
+
         self._train_dataset = MultiTaskDataset(
             datasets={
                 name: datasets['train']
                 for name, datasets in self._datasets.items() if name in names
             }
         )
+        print('num train_datasets: ', len(self._train_dataset._datasets))
         self._val_datasets = [
             datasets['val'] for name, datasets in self._datasets.items() if name in names
         ]
+        print('num val_datasets: ', len(self._val_datasets))
         self._test_datasets = [
             datasets['test'] for name, datasets in self._datasets.items() if name in names
         ]
