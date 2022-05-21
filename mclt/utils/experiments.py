@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import warnings
+from copy import deepcopy
 from itertools import chain
 from pathlib import Path
 from typing import Any, Callable, Dict
@@ -303,9 +304,12 @@ def run_adaptune_experiment(
     shared_training_steps_ratio = 1.0 - adapter_finetune_steps_ratio
     per_task_finetune_ratio = adapter_finetune_steps_ratio / len(tasks)
 
+    num_steps = config['max_steps'] * len(tasks)
+    val_check_interval = config['val_check_interval'] * len(tasks)
+
     trainer = _create_trainer(
-        int(config['max_steps'] * len(tasks) * shared_training_steps_ratio),
-        int(config['val_check_interval'] * len(tasks) * shared_training_steps_ratio),
+        int(num_steps * shared_training_steps_ratio),
+        int(val_check_interval * shared_training_steps_ratio),
     )
     trainer.fit(
         model=model_trainer,
@@ -333,19 +337,19 @@ def run_adaptune_experiment(
         print(f'training {task_name} adapter')
         datamodule.set_datasets([task_name])
 
-        trainer = _create_trainer(
-            int(config['max_steps'] * per_task_finetune_ratio),
-            int(config['val_check_interval'] * per_task_finetune_ratio),
-        )
-
         config['learning_rate'] = config['adapter_learning_rate']
         model_trainer = create_model_trainer(config, {task_name: task})
-        keys = model_trainer.load_state_dict(shared_state_dict, strict=False)
+        keys = model_trainer.load_state_dict(deepcopy(shared_state_dict), strict=False)
         other_tasks = set(tasks).difference({task_name})
         assert all(key.split('.')[-3] in other_tasks for key in keys.unexpected_keys)
 
         transformer: RobertaModel = model_trainer.model.transformer
         add_adapter_layers_and_freeze(transformer)
+
+        trainer = _create_trainer(
+            int(num_steps * per_task_finetune_ratio),
+            int(val_check_interval * per_task_finetune_ratio),
+        )
         trainer.fit(
             model=model_trainer,
             datamodule=datamodule,

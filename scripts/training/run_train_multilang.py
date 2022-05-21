@@ -7,7 +7,7 @@ from mclt.utils.config import load_config
 from mclt.utils.experiments import (
     create_datamodule,
     create_multilingual_model_trainer,
-    run_experiment,
+    run_experiment, run_adaptune_experiment,
 )
 
 sys.path.append(PROJECT_PATH)
@@ -21,7 +21,8 @@ for task_name in TASK_LANGUAGE_TABLE.columns:
         config = deepcopy(config)
         config['model_random_state'] += repeat
 
-        run_experiment(
+        run_func = run_adaptune_experiment if config['method'] == 'adaptune' else run_experiment
+        run_func(
             config,
             create_datamodule=create_datamodule,
             create_model_trainer=create_multilingual_model_trainer,

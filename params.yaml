@@ -1,5 +1,5 @@
 train:
-  method: adapter_tune
+  method: adaptune
   tasks:
   languages:
   model: xlm-roberta-base
@@ -22,9 +22,9 @@ train:
 
 finetune:
   learning_rate: 0.00001
-  batch_size: 32
+  batch_size: 16
   accumulate_grad_batches: 1
-  gradient_checkpointing: true
+  gradient_checkpointing: false
   freeze_backbone: false
 
 linear:
@@ -50,7 +50,7 @@ adapter:
   batch_size: 16
   gradient_checkpointing: false
 
-adapter_tune:
+adaptune:
   learning_rate: 0.00001
   batch_size: 16
   gradient_checkpointing: false
