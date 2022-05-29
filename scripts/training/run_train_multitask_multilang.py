@@ -26,5 +26,5 @@ for repeat in range(config['num_repeats']):
         config,
         create_datamodule=create_datamodule,
         create_model_trainer=create_multilingual_model_trainer,
-        experiment_name='multi_task',
+        experiment_name='multi_task_multi_language',
     )
